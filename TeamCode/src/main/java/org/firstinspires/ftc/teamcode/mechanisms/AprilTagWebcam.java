@@ -78,7 +78,7 @@ public class AprilTagWebcam {
 
     public AprilTagDetection getTagBySpecificId(int id){
         for (AprilTagDetection detection : detectedTags){
-            if (detection instanceof AprilTagDetection){
+            if (detection instanceof AprilTagSingleDetection){
 
                 AprilTagSingleDetection singleDetection = (AprilTagSingleDetection) detection;
                 if (singleDetection.id == id){
