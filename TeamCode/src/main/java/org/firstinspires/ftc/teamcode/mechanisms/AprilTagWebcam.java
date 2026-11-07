@@ -24,9 +24,16 @@ public class AprilTagWebcam {
     private List<AprilTagDetection> detectedTags = new ArrayList<>();
 
     private Telemetry telemetry;
+    //provides variables for future use
 
+    //initializes
     public void init(HardwareMap hwMap, Telemetry telemetry){
+
+        //sets telemetry equal to parameter telemetry. Telemetry is for putting data on driver hub
         this.telemetry = telemetry;
+
+        //Sets guidelines for the april tags. Basically tells the processor to make the detected tags
+        //have boxes, look 3d, etc.
         aprilTagProcessor = new AprilTagProcessor.Builder()
                 .setDrawTagID(true)
                 .setDrawTagOutline(true)
@@ -35,20 +42,29 @@ public class AprilTagWebcam {
                 .setOutputUnits(DistanceUnit.CM, AngleUnit.DEGREES)
                 .build();
 
-
+        //Sets the video feed
         VisionPortal.Builder builder = new VisionPortal.Builder();
         builder.setCamera(hwMap.get(WebcamName.class, "webcam1"));
         builder.setCameraResolution(new Size(640, 480));
+
+        //Adds processor to build
         builder.addProcessor(aprilTagProcessor);
 
         visionPortal = builder.build();
     }
+
+    //Updates the detected tags array
     public void update (){
         detectedTags = aprilTagProcessor.getDetections();
     }
+
+    //Returns detected tags in an array
     public List<AprilTagDetection> getDetectedTags(){
         return detectedTags;
     }
+
+    //displays any april tags seen by camera. Has separate protocols for single vs. clustered tags.
+    //telemetry.addLine parts were taken from ConceptAprilTag
     public void displayDetectionTelemetry(AprilTagDetection detectedId)
     {
         if (detectedId == null){
