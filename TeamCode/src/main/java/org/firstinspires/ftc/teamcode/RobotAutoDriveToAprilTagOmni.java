@@ -261,6 +261,10 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
                 {
                     intakePower = gamepad1.right_trigger;
                 }
+                else if (gamepad1.left_trigger_pressed)
+                {
+                    intakePower = -gamepad1.left_trigger;
+                }
                 else{
                     intakePower = 0;
                 }
