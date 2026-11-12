@@ -22,4 +22,9 @@ public class AprilTagWebcamExample extends OpMode {
         AprilTagDetection id20 = aprilTagWebcam.getTagBySpecificId(20);
         aprilTagWebcam.displayDetectionTelemetry(id20);
     }
+
+    @Override
+    public void stop(){
+        aprilTagWebcam.stop();
+    }
 }
