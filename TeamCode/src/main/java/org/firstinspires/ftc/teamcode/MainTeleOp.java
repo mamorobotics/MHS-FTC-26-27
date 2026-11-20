@@ -29,11 +29,11 @@
 
 package org.firstinspires.ftc.teamcode;
 
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
@@ -95,9 +95,9 @@ import java.util.concurrent.TimeUnit;
  *
  */
 
-@TeleOp(name="RobotAutoDriveToAprilTagOmni", group = "Concept")
+@TeleOp(name="MainTeleOp", group = "Concept")
 // @Disabled
-public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
+public class MainTeleOp extends LinearOpMode
 {
     // Adjust these numbers to suit your robot.
     final double DESIRED_DISTANCE = 30.0; //  this is how close the camera should get to the target (inches)
@@ -115,6 +115,13 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
     final double MAX_AUTO_STRAFE= 1;    //  Clip the strafing speed to this max value (adjust for your robot)
     final double MAX_AUTO_TURN  = 0.3;    //  Clip the turn speed to this max value (adjust for your robot)
 
+    // The following set the max speeds for the manual drive.
+    // How it works is that the speed is calculated by input / variable
+    // So higher variable, higher speed
+    // That being said do not make the variable less than 1
+    final double MAX_TELEOP_SPEED = 1;
+    final double MAX_TELEOP_STRAFE = 1;
+    final double MAX_TELEOP_TURN = 1;
     private DcMotor frontLeftDrive = null;  //  Used to control the left front drive wheel
     private DcMotor frontRightDrive = null; //  Used to control the right front drive wheel
     private DcMotor backLeftDrive = null;   //  Used to control the left back drive wheel
@@ -122,6 +129,13 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
 
     private DcMotorEx intake = null; // used for intake motor
 
+    private Servo shooterAdjustL;
+    private Servo shooterAdjustR;
+    private double L;
+    private double R;
+    private boolean grabberToggle;
+    // Used to set servo positions
+    private boolean lastA = false;   // add with your other fields
     private final boolean USE_WEBCAM = true;  // Set true to use a webcam, or false for a phone camera
     private final int DESIRED_TAG_ID = -1;    // The tag you want to approach, or set to -1 for ANY tag.
     private final String DESIRED_CLUSTER_NAME = null; // The cluster name you want to approach, or set null for ANY cluster.
@@ -135,6 +149,8 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
     private double targetRange   = 0;
     private double targetBearing = 0;
     private double targetYaw     = 0;
+
+    private int decimation = 2;
 
     @Override public void runOpMode()
     {
@@ -155,6 +171,16 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
         backRightDrive = hardwareMap.get(DcMotor.class, "back_right_drive");
 
         intake  = hardwareMap.get(DcMotorEx.class, "intake");
+
+        shooterAdjustL = hardwareMap.get(Servo.class, "shooterAdjustL");
+        shooterAdjustR = hardwareMap.get(Servo.class, "shooterAdjustR");
+
+        L = 0.5;
+        R = 0.5;
+        shooterAdjustL.setPosition(L);
+        shooterAdjustR.setPosition(R);
+        grabberToggle = false;
+
 
         // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
         // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
@@ -237,7 +263,20 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
             } else {
                 telemetry.addData("\n>","Drive using joysticks to find valid target\n");
             }
+            // Decimation is used later for the camera
+            // Basically lower decimation = longer detection distance & lower framerate
+            // Vice versa
 
+            if (gamepad1.dpad_up & decimation != 3)
+            {
+                decimation ++;
+            }
+            if (gamepad1.dpad_down & decimation != 1)
+            {
+                decimation --;
+            }
+            aprilTag.setDecimation(decimation);
+            telemetry.addData("Decimation", decimation);
             // If Left Bumper is being pressed, AND we have found the desired target, Drive to target Automatically .
             if (gamepad1.left_bumper && targetFound) {
 
@@ -254,9 +293,9 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
                 telemetry.addData("Auto","Drive %5.2f, Strafe %5.2f, Turn %5.2f ", drive, strafe, turn);
             } else {
                 // drive using manual POV Joystick mode.  Slow things down to make the robot more controlable.
-                drive  = -gamepad1.left_stick_y  / 2.0;  // Reduce drive rate to 50%.
-                strafe = -gamepad1.left_stick_x  / 2.0;  // Reduce strafe rate to 50%.
-                turn   = -gamepad1.right_stick_x / 3.0;  // Reduce turn rate to 33%.
+                drive  = -gamepad1.left_stick_y  / MAX_TELEOP_SPEED;
+                strafe = -gamepad1.left_stick_x  / MAX_TELEOP_STRAFE;
+                turn   = -gamepad1.right_stick_x / MAX_TELEOP_TURN;
                 if (gamepad1.right_trigger_pressed)
                 {
                     intakePower = gamepad1.right_trigger;
@@ -265,7 +304,7 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
                 {
                     intakePower = -gamepad1.left_trigger;
                 }
-                else{
+                else {
                     intakePower = 0;
                 }
 
@@ -273,6 +312,14 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
             }
             double intakeRPM = intake.getVelocity() * 60.0 / INTAKE_TICKS_PER_REV;
             telemetry.addData("Intake RPM", "%5.0f", intakeRPM);
+
+            // Toggle only on the moment A goes from released -> pressed
+            if (gamepad1.a && !lastA) {
+                grabberToggle = !grabberToggle;
+                L = grabberToggle ? 0.66 : 0.33;
+                R = 1 - L;
+            }
+            lastA = gamepad1.a;
             telemetry.update();
 
             // Apply desired axes motions to the drivetrain.
@@ -312,6 +359,9 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
         backLeftDrive.setPower(backLeftPower);
         backRightDrive.setPower(backRightPower);
         intake.setPower(intakePower);
+        // For controlling servos
+        shooterAdjustL.setPosition(L);
+        shooterAdjustR.setPosition(R);
     }
 
     /**
@@ -328,7 +378,7 @@ public class RobotAutoDriveToAprilTagOmni extends LinearOpMode
         // Decimation = 3 ..  Detect 2" Tag from 4  feet away at 30 Frames Per Second
         // Decimation = 3 ..  Detect 5" Tag from 10 feet away at 30 Frames Per Second
         // Note: Decimation can be changed on-the-fly to adapt during a match.
-        aprilTag.setDecimation(2);
+        aprilTag.setDecimation(decimation);
 
         // Create the vision portal by using a builder.
         if (USE_WEBCAM) {
