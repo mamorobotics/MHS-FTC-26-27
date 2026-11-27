@@ -25,14 +25,28 @@ public class PedroTeleOp extends OpMode {
                 -gamepad1.left_stick_x,
                 -gamepad1.right_stick_x,
                 follower.pose().heading()
+
+
         );
+
+
 
         ManualDrive.driveOrHold(follower, powers);
         follower.update();
         Pose robotPose = follower.pose(); // returns a Pose object
         telemetry.addData("Robot X", robotPose.x());
         telemetry.addData("Robot Y", robotPose.y());
-        telemetry.addData("Robot Heading", Math.toDegrees(robotPose.heading()));
-        // Math.toDegrees() is a built-in java method
+        telemetry.addData("Robot Heading",
+                Math.toDegrees(robotPose.heading()));
+
+        telemetry.addData("Follower Mode", follower.mode());
+        telemetry.addData("Holding", follower.holding());
+        telemetry.addData("Manual", follower.manual());
+
+        telemetry.addData("Velocity X", follower.velocity().vx);
+        telemetry.addData("Velocity Y", follower.velocity().vy);
+        telemetry.addData("Angular Velocity", follower.velocity().omega);
+
+        telemetry.update();
     }
 }
